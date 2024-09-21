@@ -9,6 +9,8 @@ router.post('/signUp',uploadMiddleware.upload.single('profile_picture'),resizein
 router.post('/logIn',UserCtrl.logIn);
 router.get('/logout',authCtrl.protected,UserCtrl.logout);
 router.patch('/updateMe',authCtrl.protected,uploadMiddleware.upload.single('profile_picture'),resizeingMiddleware.resizeingImage('profileImages',100,100),UserCtrl.updateMe);
+router.get('/forgetPassword',authCtrl.protected,UserCtrl.forgetPassword);
+
 router.get('/followAUser/:id',authCtrl.protected,UserCtrl.followAUser);
 router.get('/UnfollowAUser/:id',authCtrl.protected,UserCtrl.UnfollowAUser);
 router.get('/getMYAllFollowers',authCtrl.protected,UserCtrl.getMYAllFollowers);

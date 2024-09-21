@@ -32,16 +32,11 @@ module.exports = (sequelize, DataTypes) => {
           model:'post',
           key:'id'
         }
-      },
-      createdAt: {
-        allowNull: false,
-        type: DataTypes.DATE
       }
   }, {
     sequelize,
     modelName: 'like',
-    paranoid: true,
-    timestamps: true,
+    timestamps:false
   });
   return like;
 };

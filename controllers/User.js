@@ -1,16 +1,20 @@
 const {user}=require('../models/index');
 const {userFollowers}=require('../models/index');
-const {Op} = require('sequelize');
+const EmailCtrl=require('../utils/Email');
 
+const {Op} = require('sequelize');
+const crypto=require('crypto');
 const jwt=require('jsonwebtoken');
 const appError=require('../utils/appError');
 const bcrypt=require('bcrypt')
+
 const signToken=(id)=>{
     const token =jwt.sign({id},process.env.JWT_SECRET,{
         expiresIn:process.env.EXPIRED_DATE
     });
     return token;
 }
+
 const createCookie=(token,res)=>{
     const cookieOptions=
     {
@@ -111,6 +115,22 @@ const UserCtrl={
     //NOT IMP FROM HERE
     forgetPassword:async(req,res,next)=>{
         try{
+            const theUser=await user.findByPk(req.user.id);
+            if(!theUser){
+                return next(new appError('This user is not found!',404));
+            }
+            const RestToken=crypto.randomBytes(32).toString('hex');
+            theUser.passwordRestToken=crypto.
+            createHash('sha256').update(RestToken).digest('hex');
+            theUser.passwordRestExpires=new Date()+ 10*60*1000 //10mins
+            await theUser.save();
+            const restUrl=`${req.get('host')}/api/user/resetPassword/${RestToken}`
+            EmailCtrl.sendrestPassEmail(
+                "password Reset , Your password reset token (valid for only 10 minutes)"
+            ,restUrl,theUser);
+            res.status(200).json({
+                message:'the email is sent...'
+            })
         }catch(error){
             console.log(error);
             next(new appError('somtheing went wrong!',500));

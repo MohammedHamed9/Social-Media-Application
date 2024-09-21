@@ -79,6 +79,16 @@ module.exports = (sequelize, DataTypes) => {
       type:DataTypes.DATE,
       allowNull: true, 
       defaultValue:null
+    },
+    passwordRestToken:{
+      type:DataTypes.STRING,
+      allowNull: true, 
+      defaultValue:null
+    },
+    passwordRestExpires:{
+      type:DataTypes.DATE,
+      allowNull: true, 
+      defaultValue:null
     }
   }, {
     sequelize,

@@ -10,9 +10,12 @@ const ErrorCtrl=require('./controllers/ErrorController');
 const appError=require('./utils/appError');
 const UserRoutes=require('./routes/UserRoutes');
 const PostRoutes=require('./routes/PostRoutes');
-
+const CommentRoutes=require('./routes/CommentRoutes');
+const LikeRoutes=require('./routes/LikeRoutes')
 app.use('/api/User',UserRoutes);
 app.use('/api/Post',PostRoutes);
+app.use('/api/Comment',CommentRoutes);
+app.use('/api/Like',LikeRoutes);    
 
 app.all('*',(req,res,next)=>{
     next(new appError(`cant find this route: ${req.originalUrl} in this server!`,404));

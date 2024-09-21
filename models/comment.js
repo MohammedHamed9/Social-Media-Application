@@ -19,6 +19,9 @@ module.exports = (sequelize, DataTypes) => {
     content: {
       type: DataTypes.TEXT,
       allowNull: false,
+      validate:{
+        notEmpty: true
+      }
     },
     PostId:{
       type:DataTypes.UUID,
@@ -38,7 +41,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     createdAt: {
       allowNull: false,
-      type: DataTypes.DATE
+      type: DataTypes.DATE,
+      
     },
     updatedAt: {
       allowNull: false,
