@@ -1,6 +1,10 @@
 const {post}=require('../models/index');
 const {user}=require('../models/index');
+const {userFollowers}=require('../models/index');
+const {notification}=require('../models/index');
 
+const Redis = require("ioredis");
+const redis = new Redis();
 const {Op} = require('sequelize');
 const appError=require('../utils/appError');
 const PostCtrl={
@@ -8,6 +12,19 @@ const PostCtrl={
         try{    
             req.body.UserId=req.user.id;
             const newpost=await post.create(req.body);
+            const numOfpeopleIFollow=await userFollowers.findAll({
+                where:{
+                    followerId:req.user.id,
+                    deletedAt: { [Op.is]: null }
+                }});
+                let arrayOfId=[]
+                numOfpeopleIFollow.map((el,index)=>{
+                    arrayOfId.push(numOfpeopleIFollow[index].dataValues.followingId) 
+                });
+                for(let i=0; i<arrayOfId.length;i++){
+                    const followingSocketId= await redis.get(`user:${arrayOfId[i]}`)
+                    req.io.to(followingSocketId).emit('notification',`${req.user.username} Added New Post`)
+                }
             res.status(201).json({
                 message:"the post is created",
                 newpost

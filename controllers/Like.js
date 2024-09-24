@@ -1,6 +1,9 @@
 const {post}=require('../models/index');
 const {like}=require('../models/index');
 const {user}=require('../models/index');
+const {notification}=require('../models/index');
+const Redis = require("ioredis");
+const redis = new Redis();
 
 const {Op} = require('sequelize');
 const appError=require('../utils/appError');
@@ -19,6 +22,14 @@ const LikeCtrl={
             req.body.UserId=req.user.id;
             req.body.PostId =PostId;
             const liked=await like.create(req.body);
+            const theUser=await user.findByPk(thePost.dataValues.UserId)
+            let socketId=await redis.get(`user:${theUser.dataValues.id}`)
+            req.io.to(socketId).emit('notification',`${req.user.username} Liked in your post`)
+            const thenotification=await notification.create({
+                type:'like',
+                message:`${req.user.username} Liked in your post`,
+                UserId:theUser.id
+            })
             res.status(201).json({
                 message:"the Like is added",
                 liked

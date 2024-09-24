@@ -16,7 +16,7 @@ const transporter=nodemailer.createTransport({
       try {
         const name=user.username.split(' ')[0];
         const mailOptions={
-          from:{name:'e-commerce app',address:process.env.EMAIL_USER},
+          from:{name:'the social media app',address:process.env.EMAIL_USER},
           to:user.email,
           subject:subject,
           html:`<b>Hi ${name} ,<br>
@@ -26,7 +26,7 @@ const transporter=nodemailer.createTransport({
           thank you.
   </b>`
         }
-        await transporter.sendMail(mailOptions)
+        await transporter.sendMail(mailOptions);
       } catch (error) {
         console.log(error);
       } 

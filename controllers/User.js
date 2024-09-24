@@ -1,7 +1,11 @@
 const {user}=require('../models/index');
+const {post}=require('../models/index');
+const {notification}=require('../models/index');
+
 const {userFollowers}=require('../models/index');
 const EmailCtrl=require('../utils/Email');
-
+const Redis = require("ioredis");
+const redis = new Redis();
 const {Op} = require('sequelize');
 const crypto=require('crypto');
 const jwt=require('jsonwebtoken');
@@ -27,7 +31,6 @@ const createCookie=(token,res)=>{
 const UserCtrl={
     signUp:async(req,res,next)=>{
         try{
-            console.log(req.body);
             const {username,email,password,bio}=req.body;
             let profile_picture="";
             if (req.file && req.file.path) {
@@ -112,10 +115,10 @@ const UserCtrl={
             next(new appError('somtheing went wrong!',500));
         }
     },
-    //NOT IMP FROM HERE
     forgetPassword:async(req,res,next)=>{
         try{
-            const theUser=await user.findByPk(req.user.id);
+            const email=req.body.email;
+            const theUser=await user.findOne({where:{email}});
             if(!theUser){
                 return next(new appError('This user is not found!',404));
             }
@@ -138,22 +141,61 @@ const UserCtrl={
     },
     resetPassword:async(req,res,next)=>{
         try{
+        const hashedtoken=crypto.
+        createHash('sha256').update(req.params.token).digest('hex');
+        const theUser=await user.findOne({
+            where:{
+            passwordRestToken:hashedtoken,
+            passwordRestExpires:{
+                [Op.gt]:new Date()
+            }   
+        }});
+        if(!theUser){
+            return next(new appError('Token is invalid or has expired',400));
+        }
+
+        let password=req.body.password;
+            theUser.password = password;
+            theUser.passwordRestToken = undefined;
+            theUser.passwordRestExpires = undefined;
+            await theUser.save();
+        res.status(200).json({
+            message:'the password is updated..',
+        });
         }catch(error){
             console.log(error);
             next(new appError('somtheing went wrong!',500));
         }
     },
     updatePassword:async(req,res,next)=>{
-        try{
-        }catch(error){
+        try {
+            const oldPassword=req.body.oldPassword;
+            const newPassword=req.body.newPassword;
+            //not true tell the user sorry  
+            console.log(oldPassword);
+            console.log(req.user.password)
+            let flage=await bcrypt.compare(oldPassword,req.user.password)
+            if(!flage){
+                return next (new appError('sorry the password is wrong!',400))
+            }
+            req.user.password=newPassword;           
+            await req.user.save();
+            res.status(200).json({
+                message:'the password is updated successfully..'
+            });
+        } catch(error){
             console.log(error);
             next(new appError('somtheing went wrong!',500));
         }
     },
-    //IMP
     followAUser:async(req,res,next)=>{
         try{
             //check if this user exist
+            if(req.params.id==req.user.id){
+                return res.status(400).json({
+                    message:'you cant follow yourself!'
+                });
+            }
             const theUser=await user.findByPk(req.params.id);
             if(!theUser || theUser.deletedAt!=null){
                 return res.status(404).json({
@@ -168,7 +210,6 @@ const UserCtrl={
                     followingId:req.params.id,
                     deletedAt: { [Op.is]: null }
                 }});
-            
             if(following){
                 return res.status(400).json({
                     message:`you are following  ${theUser.username} already!`
@@ -176,9 +217,16 @@ const UserCtrl={
             }
             const userFollow=await userFollowers.create({followerId:req.user.id,followingId:req.params.id});
             
+            const followingSocketId= await redis.get(`user:${req.params.id}`)
+            req.io.to(followingSocketId).emit('notification',`${req.user.username} started following you`)
+            const thenotification=await notification.create({
+                type:'follow',
+                message:`You have a new follower: ${req.user.username}`,
+                UserId:theUser.id
+            });
             res.status(200).json({
                 message:`you are following now ${theUser.username}`
-            })
+            });
         }catch(error){
             console.log(error);
             next(new appError('somtheing went wrong!',500));
@@ -220,27 +268,40 @@ const UserCtrl={
     },
     getMYAllFollowers:async(req,res,next)=>{
         try{
-            const following =await userFollowers.findAll({
-                where:{
-                    followingId:req.user.id,
-                    deletedAt: { [Op.is]: null }
-                },
-                include:[
-                    {
-                      model: user,
-                      as:'following',
-                      attributes: ['id', 'username'] 
+            let results=null;
+            const key='search:1'
+            let value=await redis.get(key);
+
+            if(!value){
+                console.log('#########from databse#########')
+                const following =await userFollowers.findAll({
+                    where:{
+                        followingId:req.user.id,
+                        deletedAt: { [Op.is]: null }
                     },
-                    {
-                        model: user,
-                      as: 'followers', 
-                      attributes: ['id', 'username'] 
-                    }
-                  ]
-            });
+                    include:[
+                        {
+                          model: user,
+                          as:'following',
+                          attributes: ['id', 'username'] 
+                        },
+                        {
+                            model: user,
+                          as: 'followers', 
+                          attributes: ['id', 'username'] 
+                        }
+                      ]
+                });
+                await redis.set(key,JSON.stringify(following),"EX", 2*60);
+                results=following;
+            }
+            else{
+                console.log('cach hit');
+                results=JSON.parse(value)
+            }
 
                 res.status(200).json({
-                    following
+                    results
                 });
               
         }catch(error){
@@ -248,23 +309,84 @@ const UserCtrl={
             next(new appError('somtheing went wrong!',500));
         }
     },
-    //NOT IMP
     DisplayAccount:async(req,res,next)=>{
         try{
-        
-        }catch(error){
-            console.log(error);
-            next(new appError('somtheing went wrong!',500));
-        }
-    },
-    DisplayfollowedUserPosts:async(req,res,next)=>{
-        try{
-        
-        }catch(error){
-            console.log(error);
-            next(new appError('somtheing went wrong!',500));
-        }
-    },
+            const myAcc=await user.findByPk(req.user.id,{
+               attributes:['username','profile_picture','bio']
+            });
+            const posts=await post.findAndCountAll({where:{UserId:req.user.id},
+                order:[['createdAt','DESC']],
+                attributes:['content','image_url']
 
+            });
+            const numOfFollowers=await userFollowers.findAndCountAll({
+                where:{
+                    followingId:req.user.id,
+                    deletedAt: { [Op.is]: null }
+                }})
+                const numOfpeopleIFollow=await userFollowers.findAndCountAll({
+                    where:{
+                        followerId:req.user.id,
+                        deletedAt: { [Op.is]: null }
+                    }})
+            myAcc.dataValues.PostNumber=posts.count
+            myAcc.dataValues.myPosts=posts.rows
+            myAcc.dataValues.Followers=numOfFollowers.count
+            myAcc.dataValues.following=numOfpeopleIFollow.count
+
+            res.status(200).json({
+                myAcc
+            })
+        }catch(error){
+            console.log(error);
+            next(new appError('somtheing went wrong!',500));
+        }
+    },
+    DisplayNewPosts:async(req,res,next)=>{
+        try{
+            //list followers id in array 
+            const numOfpeopleIFollow=await userFollowers.findAll({
+                where:{
+                    followerId:req.user.id,
+                    deletedAt: { [Op.is]: null }
+                }});
+                let arrayOfId=[]
+                numOfpeopleIFollow.map((el,index)=>{
+                    arrayOfId.push(numOfpeopleIFollow[index].dataValues.followingId) 
+                })
+                console.log(arrayOfId)
+                const posts=await post.findAll({where:{
+                    UserId:{
+                        [Op.in]:arrayOfId
+                    }
+                },
+                order:[['createdAt','DESC']],
+            })
+                res.status(200).json({
+                    posts
+                })
+            //get all posts that UsetId is in that list
+
+        }catch(error){
+            console.log(error);
+            next(new appError('somtheing went wrong!',500));
+        }
+    },
+    searchForAUser:async(req,res,next)=>{
+        try{
+            const users=await user.findAll({where:{
+                username:{
+                    [Op.like]:`%${req.body.name}%`
+                }
+                }});
+            res.status(200).json({users})
+
+        }catch(error){
+            console.log(error);
+            next(new appError('somtheing went wrong!',500));
+        }
+    },
+    getAllNotifications:()=>{
+    },
 }
 module.exports=UserCtrl;

@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate:{
         len: {
-          args: [2, 30],
+          args: [8, 30],
           msg: 'Username must be between 2 and 10 characters long.',
         },
       }
@@ -54,7 +54,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate:{
         len: {
-          args: [2, 30],
+          args: [1, 100],
           msg: 'password must be between 8 and 30 characters long.',
         },
       }
@@ -99,7 +99,6 @@ module.exports = (sequelize, DataTypes) => {
 
   user.addHook('beforeSave', async (user, options) => {
     if (!user.changed('password')) return;
-    
     user.password = await bcrypt.hash(user.password, 12);
   });
 

@@ -9,13 +9,15 @@ router.post('/signUp',uploadMiddleware.upload.single('profile_picture'),resizein
 router.post('/logIn',UserCtrl.logIn);
 router.get('/logout',authCtrl.protected,UserCtrl.logout);
 router.patch('/updateMe',authCtrl.protected,uploadMiddleware.upload.single('profile_picture'),resizeingMiddleware.resizeingImage('profileImages',100,100),UserCtrl.updateMe);
-router.get('/forgetPassword',authCtrl.protected,UserCtrl.forgetPassword);
-
+router.post('/forgetPassword',UserCtrl.forgetPassword);
+router.patch('/resetPassword/:token',UserCtrl.resetPassword);
+router.patch('/updatePassword',authCtrl.protected,UserCtrl.updatePassword);
 router.get('/followAUser/:id',authCtrl.protected,UserCtrl.followAUser);
 router.get('/UnfollowAUser/:id',authCtrl.protected,UserCtrl.UnfollowAUser);
 router.get('/getMYAllFollowers',authCtrl.protected,UserCtrl.getMYAllFollowers);
 router.delete('/deleteMe',authCtrl.protected,UserCtrl.deleteMe);
-
-router.patch('/DisplayAccount',UserCtrl.DisplayAccount);
+router.get('/DisplayAccount',authCtrl.protected,UserCtrl.DisplayAccount);
+router.get('/DisplayNewPosts',authCtrl.protected,UserCtrl.DisplayNewPosts);
+router.post('/searchForAUser',authCtrl.protected,UserCtrl.searchForAUser);
 
 module.exports=router;

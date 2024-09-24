@@ -1,9 +1,14 @@
 const {post}=require('../models/index');
 const {comment}=require('../models/index');
 const {user}=require('../models/index');
+const {notification}=require('../models/index');
+
+const appError=require('../utils/appError');
 
 const {Op} = require('sequelize');
-const appError=require('../utils/appError');
+const Redis = require("ioredis");
+const redis = new Redis();
+
 const CommentCtrl={
     createComment:async(req,res,next)=>{
         try{  
@@ -12,9 +17,42 @@ const CommentCtrl={
             if(!thePost){
                 return next(new appError('this post is no longer exists',404));
             }
+            //login if the comment is a tag commnet 
+            if(req.body.content.startsWith("@")){
+                let array=[]
+                req.body.content.split("").map(el=>{
+                    if(el!="@") array.push(el)
+                })
+                req.body.content=array.join("").trim();
+                req.body.UserId=req.user.id;
+                req.body.PostId =PostId;
+                const newComment=await comment.create(req.body);
+                const theUser=await user.findOne({where:{username:req.body.content}})
+                if(theUser){
+                    let socketId=await redis.get(`user:${theUser.id}`)
+                    req.io.to(socketId).emit('notification',`${req.user.username} Tgged you in this ${thePost.dataValues.id} post`)
+                    const thenotification=await notification.create({
+                        type:'comment',
+                        message:`${req.user.username} Tgged you in a Comment`,
+                        UserId:theUser.id
+                    })
+                }
+                return res.status(201).json({
+                    message:"the comment is created",
+                    newComment
+                })
+            }
             req.body.UserId=req.user.id;
             req.body.PostId =PostId;
             const newComment=await comment.create(req.body);
+            const theUser=await user.findByPk(thePost.dataValues.UserId)
+            let socketId=await redis.get(`user:${theUser.dataValues.id}`)
+            req.io.to(socketId).emit('notification',`${req.user.username} Commented in your post`)
+            const thenotification=await notification.create({
+                type:'comment',
+                message:`${req.user.username} Commented in your post`,
+                UserId:theUser.id
+            })
             res.status(201).json({
                 message:"the comment is created",
                 newComment
@@ -113,6 +151,6 @@ const CommentCtrl={
             next(new appError('somtheing went wrong!',500));
         }
     
-    },
+    }
 }
 module.exports=CommentCtrl;
