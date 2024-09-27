@@ -68,15 +68,25 @@ const PostCtrl={
     },
     getMYAllPosts:async(req,res,next)=>{
         try{  
+            const key =`userPosts:${req.user.id}`;
+            const value=await redis.get(key);
+            if(value){
+                console.log('cache hit')
+                const results=JSON.parse(value);
+                return res.status(200).json({
+                    posts:results
+                })
+            }
             const Posts=await post.findAll({where:{UserId:req.user.id},
                 include:{
                 model: user,
                 as:'postOwner',
                 attributes: ['id', 'username'] 
             }});
+            redis.set(key,JSON.stringify(Posts),"EX",60*60);
             res.status('200').json({
                 Posts
-            })
+            });
         }catch(error){
             console.log(error);
             next(new appError('somtheing went wrong!',500));
@@ -84,17 +94,26 @@ const PostCtrl={
     },
     getAPost:async(req,res,next)=>{
         try{    
+            const key =`ThePost:${req.params.id}`;
+            const value=await redis.get(key);
+            if(value){
+                console.log('cache hit')
+                const results=JSON.parse(value);
+                return res.status(200).json({
+                    post:results
+                })
+            }
             const thePost=await post.findByPk(req.params.id,
                 {include:{
                     model: user,
                     as:'postOwner',
                     attributes: ['id', 'username'] 
                 }});
-            if(!thePost || thePost.UserId!=req.user.id){
-                return next(new appError('this post is not exist or not yours!',400));
+            if(!thePost ){
+                return next(new appError('this post is not exist !',400));
             }
+            redis.set(key,JSON.stringify(thePost),"EX",60*60);
             res.status(200).json({
-                message:'the post is updated..',
                 thePost
             })
         }catch(error){

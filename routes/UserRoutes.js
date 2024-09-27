@@ -19,5 +19,6 @@ router.delete('/deleteMe',authCtrl.protected,UserCtrl.deleteMe);
 router.get('/DisplayAccount',authCtrl.protected,UserCtrl.DisplayAccount);
 router.get('/DisplayNewPosts',authCtrl.protected,UserCtrl.DisplayNewPosts);
 router.post('/searchForAUser',authCtrl.protected,UserCtrl.searchForAUser);
+router.get('/getAllNotifications',authCtrl.protected,UserCtrl.getAllNotifications);
 
 module.exports=router;

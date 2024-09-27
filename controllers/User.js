@@ -224,6 +224,9 @@ const UserCtrl={
                 message:`You have a new follower: ${req.user.username}`,
                 UserId:theUser.id
             });
+            redis.del(`userFollowers:${req.params.id}`);
+            redis.del(`userFollowers:${req.user.id}`);
+
             res.status(200).json({
                 message:`you are following now ${theUser.username}`
             });
@@ -269,11 +272,9 @@ const UserCtrl={
     getMYAllFollowers:async(req,res,next)=>{
         try{
             let results=null;
-            const key='search:1'
+            const key=`userFollowers:${req.user.id}`;
             let value=await redis.get(key);
-
             if(!value){
-                console.log('#########from databse#########')
                 const following =await userFollowers.findAll({
                     where:{
                         followingId:req.user.id,
@@ -292,7 +293,7 @@ const UserCtrl={
                         }
                       ]
                 });
-                await redis.set(key,JSON.stringify(following),"EX", 2*60);
+                await redis.set(key,JSON.stringify(following),"EX", 2*60*60);
                 results=following;
             }
             else{
@@ -311,6 +312,15 @@ const UserCtrl={
     },
     DisplayAccount:async(req,res,next)=>{
         try{
+            const key =`userAcount:${req.user.id}`;
+            const value=await redis.get(key);
+            if(value){
+                console.log('cache hit')
+                const results=JSON.parse(value);
+                return res.status(200).json({
+                    results
+                })
+            }
             const myAcc=await user.findByPk(req.user.id,{
                attributes:['username','profile_picture','bio']
             });
@@ -333,7 +343,7 @@ const UserCtrl={
             myAcc.dataValues.myPosts=posts.rows
             myAcc.dataValues.Followers=numOfFollowers.count
             myAcc.dataValues.following=numOfpeopleIFollow.count
-
+            redis.set(key,JSON.stringify(myAcc),"EX",60*60);
             res.status(200).json({
                 myAcc
             })
@@ -354,7 +364,6 @@ const UserCtrl={
                 numOfpeopleIFollow.map((el,index)=>{
                     arrayOfId.push(numOfpeopleIFollow[index].dataValues.followingId) 
                 })
-                console.log(arrayOfId)
                 const posts=await post.findAll({where:{
                     UserId:{
                         [Op.in]:arrayOfId
@@ -374,19 +383,38 @@ const UserCtrl={
     },
     searchForAUser:async(req,res,next)=>{
         try{
+            const key=`searchForAUser:${req.body.name}`;
+            const value=await redis.get(key);
+            if(value){
+            return res.status(200).json({user:JSON.parse(value)})
+            }
             const users=await user.findAll({where:{
                 username:{
                     [Op.like]:`%${req.body.name}%`
                 }
                 }});
+            redis.set(key,JSON.stringify(users),'EX',60*60)
             res.status(200).json({users})
-
         }catch(error){
             console.log(error);
             next(new appError('somtheing went wrong!',500));
         }
     },
-    getAllNotifications:()=>{
+    getAllNotifications:async(req,res,next)=>{
+        try{
+            const notifications=await notification.findAll({where:{UserId:req.user.id},
+        order:[['createdAt','DESC']]});
+            if(notifications){
+                for(let i=0 ;i<notifications.length ;i++){
+                    notifications[i].read_status=true;
+                    await notifications[i].save();
+                }
+            }
+            res.status(200).json({notifications})
+        }catch(error){
+            console.log(error);
+            next(new appError('somtheing went wrong!',500));
+        }
     },
 }
 module.exports=UserCtrl;
