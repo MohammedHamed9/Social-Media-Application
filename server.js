@@ -15,7 +15,9 @@ const appError=require('./utils/appError');
 const UserRoutes=require('./routes/UserRoutes');
 const PostRoutes=require('./routes/PostRoutes');
 const CommentRoutes=require('./routes/CommentRoutes');
-const LikeRoutes=require('./routes/LikeRoutes')
+const LikeRoutes=require('./routes/LikeRoutes');
+const MessageRoutes=require('./routes/MessageRoutes');
+
 const ioAuth=require('./middlewares/ioAuth');
 const UserEvents=require('./Events/UserEvens')
  const ioMiddleware = require('./middlewares/injectio');
@@ -25,6 +27,7 @@ app.use('/api/User',UserRoutes);
 app.use('/api/Post',PostRoutes);
 app.use('/api/Comment',CommentRoutes);
 app.use('/api/Like',LikeRoutes);    
+app.use('/api/Message',MessageRoutes);    
 
 app.all('*',(req,res,next)=>{
     next(new appError(`cant find this route: ${req.originalUrl} in this server!`,404));

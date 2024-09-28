@@ -37,15 +37,19 @@ module.exports = (sequelize, DataTypes) => {
           key:'id'
         }
       },
+      read_status: {
+        type: DataTypes.BOOLEAN,
+        default:false
+      },
       createdAt: {
         allowNull: false,
         type: DataTypes.DATE,
+        defaultValue:new Date().toLocaleString()
       },
   }, {
     sequelize,
     modelName: 'message',
-    paranoid: true,
-    timestamps: true,
+    timestamps: false,
   });
   return message;
 };

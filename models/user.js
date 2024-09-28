@@ -69,7 +69,7 @@ module.exports = (sequelize, DataTypes) => {
     createdAt:{
       type:DataTypes.DATE,
       allowNull:true,
-      defaultValue: DataTypes.NOW,
+      defaultValue: new Date().toLocaleString()
     },
     updatedAt: {
       type:DataTypes.DATE,

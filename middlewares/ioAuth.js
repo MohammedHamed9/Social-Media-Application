@@ -12,6 +12,7 @@ module.exports=async (socket,next)=>{
        const decoded=jwt.verify(token,process.env.JWT_SECRET);
        const redisKey = `user:${decoded.id}`
        redis.set(redisKey,socket.id);
+       socket.user=decoded.id;
        next();
     }catch(error){
         if(error.name==='TokenExpiredError')

@@ -42,7 +42,7 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: {
       allowNull: false,
       type: DataTypes.DATE,
-      
+      defaultValue:new Date().toLocaleString()
     },
     updatedAt: {
       allowNull: false,
