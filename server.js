@@ -5,7 +5,8 @@ const app = express();
 const server=http.createServer(app);
 const socket=require('socket.io');
 const io=new socket.Server(server);
-
+const rateLimit=require('express-rate-limit');
+const xss=require('xss-clean');
 app.use(express.json());
 dotenv.config()
 
@@ -21,7 +22,14 @@ const MessageRoutes=require('./routes/MessageRoutes');
 const ioAuth=require('./middlewares/ioAuth');
 const UserEvents=require('./Events/UserEvens')
  const ioMiddleware = require('./middlewares/injectio');
-app.use(ioMiddleware(io));
+ const Limiter=rateLimit({
+    max:5,
+    windowMs:60*60*1000,
+    message:'a lot of requests from this IP, please try again in an hour'
+});
+app.use('/api/User/login',Limiter);
+app.use(xss());
+ app.use(ioMiddleware(io));
 
 app.use('/api/User',UserRoutes);
 app.use('/api/Post',PostRoutes);

@@ -2,7 +2,6 @@ const Redis = require("ioredis");
 const redis = new Redis();
 const {user}=require('../models/index');
 const {message}=require('../models/index');
-const { where } = require("sequelize");
 
 module.exports=async(io,socket)=>{
     console.log(`new connection from ${socket.id}`);
@@ -32,7 +31,7 @@ module.exports=async(io,socket)=>{
             console.error('Error sending message: ', error);
         }
     });
-    socket.on('fechMessage',async(MessageId)=>{
+    socket.on('fetchMessage',async(MessageId)=>{
         try{
             const theMsg=await message.findByPk(MessageId)
             theMsg.read_status=true;

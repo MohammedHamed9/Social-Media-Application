@@ -1,0 +1,14 @@
+FROM node:18-alpine
+WORKDIR /usr/src/app
+COPY package*.json ./
+RUN npm install 
+COPY . .
+EXPOSE 3000
+ENV PORT=3000
+ENV NODE_ENV=development
+ENV JWT_SECRET=THIS_IS_THE_SECRET_Of_MY_JWT
+ENV EXPIRED_DATE=90D
+ENV COOKIE_EXPIRES_DATE=90
+ENV EMAIL_USER=mh6620410@gmail.com
+ENV EMAIL_PASSWORD=hcbdrqcaayztdmbw
+CMD ["npm", "start"]
